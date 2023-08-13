@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <title>Unir y Sellar PDF</title>
@@ -41,7 +41,6 @@
     <input type="file" id="pdf2" accept="application/pdf">
     <button onclick="unirYAplicarSello()">Unir y Sellar PDFs</button>
     <a id="descargar" href="#" download hidden>Descargar PDF</a>
-    <p id="contadorDescargas">Descargas: 0</p> <!-- Contador para Unir y Sellar PDFs -->
 </div>
 
 <div id="container2">
@@ -51,7 +50,6 @@
     <input type="file" id="pdf4" accept="application/pdf">
     <button onclick="unirPDFs()">Unir PDFs</button>
     <a id="descargar2" href="#" download hidden>Descargar PDF</a>
-    <p id="contadorDescargas2">Descargas: 0</p> <!-- Contador para Unir PDFs -->
 </div>
 
 <script>
@@ -70,7 +68,54 @@
             const pagesPdf2 = await mergedPdf.copyPages(pdfDoc2, pdfDoc2.getPageIndices());
             pagesPdf2.forEach((page) => mergedPdf.addPage(page));
 
-            // ... (Código para aplicar el sello)
+            // Aquí aplicamos el sello
+            const [page] = mergedPdf.getPages();
+            const randomNumber1 = generateRandomNumber(10, 99);
+            const randomNumber2 = generateRandomNumber(1000000, 9999999);
+            const fixedText = 'FOLIO';
+            const variableText = `A${randomNumber1} ${randomNumber2}`;
+            const font = await mergedPdf.embedFont(PDFLib.StandardFonts.Helvetica);
+
+            const topY = page.getHeight() - 50;
+
+            page.drawText(fixedText, {
+                x: 85,
+                y: topY,
+                size: 10,
+                font: await mergedPdf.embedFont(PDFLib.StandardFonts.HelveticaBold),
+                color: PDFLib.rgb(0, 0, 0),
+            });
+
+            page.drawText(variableText, {
+                x: 70,
+                y: topY - 10,
+                size: 10,
+                font: await mergedPdf.embedFont(PDFLib.StandardFonts.HelveticaBold),
+                color: PDFLib.rgb(0, 0, 0),
+            });
+
+            const barcodeText = `A${randomNumber1}${randomNumber2}`;
+            const barcodeCanvas = document.createElement('canvas');
+            JsBarcode(barcodeCanvas, barcodeText, {
+                format: 'CODE128',
+                displayValue: false,
+                height: 25,
+                background: 'transparent',
+                lineColor: 'black',
+                dpi: 300,
+            });
+
+            const barcodeImage = await mergedPdf.embedPng(barcodeCanvas.toDataURL('image/png'));
+            const [barcodeWidth, barcodeHeight] = [barcodeImage.width, barcodeImage.height];
+
+            const bottomY = 50;
+
+            page.drawImage(barcodeImage, {
+                x: 40,
+                y: topY - 30,
+                width: barcodeWidth * 0.5,
+                height: barcodeHeight * 0.5,
+            });
 
             const mergedPdfBytes = await mergedPdf.save();
             var blob = new Blob([mergedPdfBytes], {type: "application/pdf"});
@@ -84,11 +129,6 @@
             descargar.setAttribute("download", nombreArchivo);
             descargar.hidden = false;
             descargar.click();
-
-            // Incrementar y mostrar el contador de descargas
-            var contadorDescargas = document.getElementById("contadorDescargas");
-            var descargasAnteriores = parseInt(contadorDescargas.textContent.split(":")[1].trim());
-            contadorDescargas.textContent = "Descargas: " + (descargasAnteriores + 1);
         } else {
             alert("Debes seleccionar dos archivos PDF");
         }
@@ -99,42 +139,36 @@
     }
 
     async function unirPDFs() {
-        var pdf3 = document.getElementById("pdf3").files[0];
-        var pdf4 = document.getElementById("pdf4").files[0];
-        
-        if (pdf3 && pdf4) {
-            var pdfData3 = new Uint8Array(await pdf3.arrayBuffer());
-            var pdfData4 = new Uint8Array(await pdf4.arrayBuffer());
-            const pdfDoc3 = await PDFLib.PDFDocument.load(pdfData3);
-            const pdfDoc4 = await PDFLib.PDFDocument.load(pdfData4);
-            const mergedPdf2 = await PDFLib.PDFDocument.create();
-            const pagesPdf3 = await mergedPdf2.copyPages(pdfDoc3, pdfDoc3.getPageIndices());
-            pagesPdf3.forEach((page) => mergedPdf2.addPage(page));
-            const pagesPdf4 = await mergedPdf2.copyPages(pdfDoc4, pdfDoc4.getPageIndices());
-            pagesPdf4.forEach((page) => mergedPdf2.addPage(page));
+    var pdf3 = document.getElementById("pdf3").files[0];
+    var pdf4 = document.getElementById("pdf4").files[0];
+    
+    if (pdf3 && pdf4) {
+        var pdfData3 = new Uint8Array(await pdf3.arrayBuffer());
+        var pdfData4 = new Uint8Array(await pdf4.arrayBuffer());
+        const pdfDoc3 = await PDFLib.PDFDocument.load(pdfData3);
+        const pdfDoc4 = await PDFLib.PDFDocument.load(pdfData4);
+        const mergedPdf2 = await PDFLib.PDFDocument.create();
+        const pagesPdf3 = await mergedPdf2.copyPages(pdfDoc3, pdfDoc3.getPageIndices());
+        pagesPdf3.forEach((page) => mergedPdf2.addPage(page));
+        const pagesPdf4 = await mergedPdf2.copyPages(pdfDoc4, pdfDoc4.getPageIndices());
+        pagesPdf4.forEach((page) => mergedPdf2.addPage(page));
 
-            const mergedPdfBytes2 = await mergedPdf2.save();
-            var blob2 = new Blob([mergedPdfBytes2], { type: "application/pdf" });
-            var url2 = URL.createObjectURL(blob2);
+        const mergedPdfBytes2 = await mergedPdf2.save();
+        var blob2 = new Blob([mergedPdfBytes2], { type: "application/pdf" });
+        var url2 = URL.createObjectURL(blob2);
 
-            var nombreArchivo2 = pdf3.name.split('.pdf')[0] + '_DOBLE.pdf'; // Obtener el nombre del primer archivo PDF
+        var nombreArchivo2 = pdf3.name.split('.pdf')[0] + '_DOBLE.pdf'; // Obtener el nombre del primer archivo PDF
 
-            var descargar2 = document.getElementById("descargar2");
-            descargar2.href = url2;
-            descargar2.setAttribute("download", nombreArchivo2 + ".pdf"); // Usar el nombre del primer archivo
-            descargar2.hidden = false;
-            descargar2.click();
-
-            // Incrementar y mostrar el contador de descargas
-            var contadorDescargas2 = document.getElementById("contadorDescargas2");
-            var descargasAnteriores2 = parseInt(contadorDescargas2.textContent.split(":")[1].trim());
-            contadorDescargas2.textContent = "Descargas: " + (descargasAnteriores2 + 1);
-        } else {
+        var descargar2 = document.getElementById("descargar2");
+        descargar2.href = url2;
+        descargar2.setAttribute("download", nombreArchivo2 + ".pdf"); // Usar el nombre del primer archivo
+        descargar2.hidden = false;
+        descargar2.click();
+    } else {
             alert("Debes seleccionar dos archivos PDF");
         }
     }
 </script>
-
 
 </body>
 </html>
